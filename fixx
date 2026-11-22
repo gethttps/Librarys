@@ -17,7 +17,7 @@ Library.Flags         = {}
 Library.Controls      = {}
 Library.Defaults      = {}
 Library.UIExpansion   = false
-Library.BackgroundImage = "rbxassetid://114579032666122"
+Library.BackgroundImage = "rbxassetid://120182594387478"
 
 Library.ThemeRegistry  = {}
 Library.ThemeCallbacks = {}
