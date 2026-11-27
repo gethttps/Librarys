@@ -1,0 +1,1983 @@
+local Library = {}
+function Library.Toggle(text, enabled, options)
+	local row = options or {}
+	row.Kind = "Toggle"
+	row.Text = text
+	row.Enabled = enabled
+	return row
+end
+function Library.Slider(text, value, minimum, maximum, decimals, onChange)
+	return {
+		Kind = "Slider",
+		Text = text,
+		Value = value,
+		Min = minimum,
+		Max = maximum,
+		Decimals = decimals,
+		OnChange = onChange,
+	}
+end
+function Library.Caption(text)
+	return { Kind = "Caption", Text = text }
+end
+function Library.Dropdown(options, default, multi, onChange)
+	return { Kind = "Dropdown", Options = options, Default = default, Multi = multi, OnChange = onChange }
+end
+function Library.Button(text, action)
+	return { Kind = "Button", Text = text, Action = action }
+end
+function Library.Field(placeholder)
+	return { Kind = "Field", Placeholder = placeholder }
+end
+function Library.Color(text, color, onChange)
+	return { Kind = "Color", Text = text, Color = color, OnChange = onChange }
+end
+function Library.ListBox(items, default, height)
+	return { Kind = "ListBox", Items = items, Default = default, Height = height }
+end
+function Library.Create(userOptions)
+userOptions = userOptions or {}
+local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local TextService = game:GetService("TextService")
+local UserInputService = game:GetService("UserInputService")
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local TITLE = userOptions.Title or "Kiciahook V2 | Rivals"
+local GUI_NAME = userOptions.Name or "KiciaUI"
+local FONT = Enum.Font.Ubuntu
+local TEXT_SIZE = 14
+local ROW_TOGGLE = 19
+local ROW_SLIDER = 30
+local ROW_FIELD = 24
+local SECTION_HEADER = 23
+local SECTION_GAP = 5
+local SWATCH_WIDTH = 40
+local SWATCH_PITCH = 43.5
+local POPUP_ROW = 18
+local POPUP_MAX_ROWS = 8
+local LABEL_OFFSET = 18
+local WINDOW_WIDTH = 500
+local WINDOW_HEIGHT = 350
+local FIT_MARGIN = 8
+local MIN_FIT_SCALE = 0.25
+local REFERENCE_WIDTH = 1172
+local REFERENCE_HEIGHT = 764
+local MIN_SHRINK = 0.6
+local MAX_GROWTH = 1.6
+local BIND_MENU_ROW = 14
+local BIND_MENU_TEXT = 12
+local MOBILE_BOX_WIDTH = 50
+local MOBILE_BOX_HEIGHT = 50
+local TAP_SLOP = 6
+local BLACK = Color3.fromRGB(0, 0, 0)
+local WHITE = Color3.fromRGB(255, 255, 255)
+local ACCENT = Color3.fromRGB(58, 164, 210)
+local ACCENT_DARK = Color3.fromRGB(26, 72, 92)
+local MAIN = Color3.fromRGB(31, 31, 31)
+local BACKGROUND = Color3.fromRGB(26, 26, 26)
+local SECTION = Color3.fromRGB(24, 24, 24)
+local OUTLINE = Color3.fromRGB(50, 50, 50)
+local CONTROL = Color3.fromRGB(32, 32, 32)
+local FIELD = Color3.fromRGB(27, 27, 27)
+local SHADE_CONTROL = Color3.fromRGB(196, 196, 196)
+local SHADE_ACCENT = Color3.fromRGB(136, 136, 136)
+local GREY = Color3.fromRGB(180, 180, 180)
+local BIND_MODES = { "Hold", "Toggle", "Always" }
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+	ColorSequenceKeypoint.new(1 / 6, Color3.fromHSV(1 / 6, 1, 1)),
+	ColorSequenceKeypoint.new(2 / 6, Color3.fromHSV(2 / 6, 1, 1)),
+	ColorSequenceKeypoint.new(3 / 6, Color3.fromHSV(3 / 6, 1, 1)),
+	ColorSequenceKeypoint.new(4 / 6, Color3.fromHSV(4 / 6, 1, 1)),
+	ColorSequenceKeypoint.new(5 / 6, Color3.fromHSV(5 / 6, 1, 1)),
+	ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1)),
+})
+local function create(className, properties)
+	local instance = Instance.new(className)
+	for name, value in pairs(properties) do
+		if name ~= "Parent" then
+			instance[name] = value
+		end
+	end
+	instance.Parent = properties.Parent
+	return instance
+end
+local function box(parent, position, size, color, borderColor, inset)
+	return create("Frame", {
+		BackgroundColor3 = color,
+		BorderColor3 = borderColor or BLACK,
+		BorderMode = inset and Enum.BorderMode.Inset or Enum.BorderMode.Outline,
+		BorderSizePixel = borderColor and 1 or 0,
+		Position = position,
+		Size = size,
+		Parent = parent,
+	})
+end
+local function panel(parent, position, size)
+	return create("Frame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = position,
+		Size = size,
+		Parent = parent,
+	})
+end
+local function well(parent, position, size, color)
+	local outer = box(parent, position, size, color, BLACK)
+	local inner = box(outer, UDim2.new(), UDim2.fromScale(1, 1), color, OUTLINE, true)
+	return outer, inner
+end
+local function shade(frame, bottom)
+	return create("UIGradient", {
+		Color = ColorSequence.new(WHITE, bottom),
+		Rotation = 90,
+		Parent = frame,
+	})
+end
+local function textObject(className, parent, text, position, size, alignment)
+	return create(className, {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Font = FONT,
+		Position = position,
+		Size = size,
+		Text = text,
+		TextColor3 = WHITE,
+		TextSize = TEXT_SIZE,
+		TextXAlignment = alignment or Enum.TextXAlignment.Left,
+		Parent = parent,
+	})
+end
+local function textWidth(text, size)
+	return TextService:GetTextSize(text, size, FONT, Vector2.new(1000, 20)).X
+end
+local function hitbox(parent, position, size)
+	return create("TextButton", {
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = position,
+		Size = size,
+		Text = "",
+		Parent = parent,
+	})
+end
+local function accentFill(parent, size)
+	local fill = box(parent, UDim2.new(), size, ACCENT, ACCENT_DARK, true)
+	shade(fill, SHADE_ACCENT)
+	return fill
+end
+local function clippedText(parent, text, position, size)
+	local clip = panel(parent, position, size)
+	clip.ClipsDescendants = true
+	textObject("TextLabel", clip, text, UDim2.new(), UDim2.new(0, 400, 1, 0))
+	return clip
+end
+local function roundTo(value, decimals)
+	local factor = 10 ^ decimals
+	return math.floor(value * factor + 0.5) / factor
+end
+local function isPress(input)
+	return input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch
+end
+local function isPointerPress(input)
+	return isPress(input) or input.UserInputType == Enum.UserInputType.MouseButton2
+end
+local function isSamePress(input, press)
+	if press.UserInputType == Enum.UserInputType.Touch then
+		return input == press
+	end
+	return input.UserInputType == press.UserInputType
+end
+local function isInside(object, position)
+	local origin = object.AbsolutePosition
+	local size = object.AbsoluteSize
+	return position.X >= origin.X
+		and position.X <= origin.X + size.X
+		and position.Y >= origin.Y
+		and position.Y <= origin.Y + size.Y
+end
+local function inputName(input)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.Keyboard or string.sub(kind.Name, 1, 7) == "Gamepad" then
+		if input.KeyCode ~= Enum.KeyCode.Unknown then
+			return input.KeyCode.Name
+		end
+		return nil
+	end
+	if
+		kind == Enum.UserInputType.MouseButton1
+		or kind == Enum.UserInputType.MouseButton2
+		or kind == Enum.UserInputType.MouseButton3
+	then
+		return kind.Name
+	end
+	return nil
+end
+local function trackDrag(press, onMove, onRelease)
+	local moved
+	local released
+	moved = UserInputService.InputChanged:Connect(function(input)
+		if input == press or input.UserInputType == Enum.UserInputType.MouseMovement then
+			onMove(input.Position)
+		end
+	end)
+	released = UserInputService.InputEnded:Connect(function(input)
+		if isSamePress(input, press) then
+			moved:Disconnect()
+			released:Disconnect()
+			if onRelease then
+				onRelease()
+			end
+		end
+	end)
+end
+local function bindDrag(handle, onMove, onPress, onRelease)
+	handle.InputBegan:Connect(function(input)
+		if isPress(input) then
+			if onPress then
+				onPress(input)
+			end
+			onMove(input.Position)
+			trackDrag(input, onMove, onRelease)
+		end
+	end)
+end
+local function bindHover(handle, target)
+	handle.MouseEnter:Connect(function()
+		target.BorderColor3 = ACCENT
+	end)
+	handle.MouseLeave:Connect(function()
+		target.BorderColor3 = OUTLINE
+	end)
+end
+local previous = playerGui:FindFirstChild(GUI_NAME)
+if previous then
+	previous:Destroy()
+end
+local screen = create("ScreenGui", {
+	DisplayOrder = 1000,
+	Name = GUI_NAME,
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = playerGui,
+})
+local topInset = GuiService:GetGuiInset()
+local window = box(
+	screen,
+	UDim2.new(0.5, 0, 0.5, -topInset.Y / 2),
+	UDim2.fromOffset(WINDOW_WIDTH, WINDOW_HEIGHT),
+	BLACK
+)
+window.Active = true
+window.AnchorPoint = Vector2.new(0.5, 0.5)
+local menuScale = create("UIScale", { Parent = window })
+local customScale
+local function getScaleLimits()
+	local available = screen.AbsoluteSize
+	local fullHeight = available.Y + topInset.Y
+	local fit = math.max(
+		MIN_FIT_SCALE,
+		math.min((available.X - FIT_MARGIN * 2) / WINDOW_WIDTH, (fullHeight - FIT_MARGIN * 2) / WINDOW_HEIGHT)
+	)
+	local proportional = math.min(available.X / REFERENCE_WIDTH, fullHeight / REFERENCE_HEIGHT)
+	local default = math.min(fit, math.max(1, proportional))
+	return default, default * MIN_SHRINK, math.min(fit, default * MAX_GROWTH)
+end
+local function keepWindowOnScreen()
+	local limit = screen.AbsoluteSize
+	if limit.X <= 0 or limit.Y <= 0 then
+		return
+	end
+	local halfWidth = WINDOW_WIDTH * menuScale.Scale / 2
+	local halfHeight = WINDOW_HEIGHT * menuScale.Scale / 2
+	local position = window.Position
+	local minimumY = halfHeight - topInset.Y
+	local centerX = math.clamp(limit.X / 2 + position.X.Offset, halfWidth, math.max(halfWidth, limit.X - halfWidth))
+	local centerY = math.clamp(limit.Y / 2 + position.Y.Offset, minimumY, math.max(minimumY, limit.Y - halfHeight))
+	window.Position = UDim2.new(0.5, centerX - limit.X / 2, 0.5, centerY - limit.Y / 2)
+end
+local function applyScale()
+	local default, lower, upper = getScaleLimits()
+	menuScale.Scale = customScale and math.clamp(customScale, lower, upper) or default
+	keepWindowOnScreen()
+end
+applyScale()
+screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyScale)
+local chrome = box(window, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 1, -2), MAIN, ACCENT, true)
+textObject("TextLabel", chrome, TITLE, UDim2.fromOffset(6, 1), UDim2.new(1, -12, 0, 20))
+local bodyOuter = box(chrome, UDim2.fromOffset(5, 19), UDim2.new(1, -10, 1, -24), BACKGROUND, OUTLINE, true)
+local body = box(bodyOuter, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 1, -2), BACKGROUND, BLACK, true)
+local overlay = panel(screen, UDim2.new(), UDim2.fromScale(1, 1))
+overlay.ZIndex = 10
+local connections = {}
+local activePopup
+local activeCapture
+local menuKey = "RightShift"
+local function closePopup()
+	if activePopup then
+		local popup = activePopup
+		activePopup = nil
+		popup.Frame:Destroy()
+		if popup.OnClose then
+			popup.OnClose()
+		end
+	end
+end
+local function isPopupAnchor(object)
+	return activePopup ~= nil and activePopup.Anchor == object
+end
+local function createPopup(width, height, color)
+	local frame, inner = well(overlay, UDim2.new(), UDim2.fromOffset(width, height), color)
+	create("UIScale", { Scale = menuScale.Scale, Parent = frame })
+	return frame, inner
+end
+local function placePopup(frame, anchor, width, height, alignRight)
+	local scale = menuScale.Scale
+	local scaledWidth = width * scale
+	local scaledHeight = height * scale
+	local origin = anchor.AbsolutePosition
+	local limit = screen.AbsoluteSize
+	local left = alignRight and origin.X + anchor.AbsoluteSize.X - scaledWidth or origin.X
+	local x = math.clamp(left, 2, math.max(2, limit.X - scaledWidth - 2))
+	local y = origin.Y + anchor.AbsoluteSize.Y + 3
+	if y + scaledHeight > limit.Y then
+		y = math.max(2, origin.Y - scaledHeight - 3)
+	end
+	frame.Position = UDim2.fromOffset(x, y)
+end
+local function openList(anchor, options, isSelected, onPick, layout)
+	closePopup()
+	local rowHeight = layout.RowHeight or POPUP_ROW
+	local width = layout.Width
+	local height = math.min(#options, POPUP_MAX_ROWS) * rowHeight + 2
+	local frame, inner = createPopup(width, height, FIELD)
+	local list = create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.fromOffset(0, #options * rowHeight),
+		ElasticBehavior = Enum.ElasticBehavior.Never,
+		Position = UDim2.fromOffset(1, 1),
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Size = UDim2.new(1, -2, 1, -2),
+		Parent = inner,
+	})
+	local buttons = {}
+	local function refresh()
+		for index, button in ipairs(buttons) do
+			button.TextColor3 = isSelected(options[index]) and ACCENT or WHITE
+		end
+	end
+	for index, option in ipairs(options) do
+		local button = textObject(
+			"TextButton",
+			list,
+			option,
+			UDim2.fromOffset(0, (index - 1) * rowHeight),
+			UDim2.new(1, 0, 0, rowHeight)
+		)
+		button.AutoButtonColor = false
+		button.BackgroundColor3 = MAIN
+		button.TextSize = layout.TextSize or TEXT_SIZE
+		create("UIPadding", { PaddingLeft = UDim.new(0, 5), Parent = button })
+		button.MouseEnter:Connect(function()
+			button.BackgroundTransparency = 0
+		end)
+		button.MouseLeave:Connect(function()
+			button.BackgroundTransparency = 1
+		end)
+		button.Activated:Connect(function()
+			onPick(option)
+			refresh()
+		end)
+		buttons[index] = button
+	end
+	refresh()
+	placePopup(frame, anchor, width, height, layout.AlignRight)
+	activePopup = { Frame = frame, Anchor = anchor, OnClose = layout.OnClose }
+end
+local function openPicker(anchor, initial, onChange)
+	closePopup()
+	local hue, saturation, brightness = initial:ToHSV()
+	local width = 186
+	local height = 172
+	local frame, inner = createPopup(width, height, SECTION)
+	box(inner, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 0, 2), ACCENT)
+	local square = box(inner, UDim2.fromOffset(7, 9), UDim2.fromOffset(150, 130), WHITE, BLACK)
+	local saturationLayer = box(square, UDim2.new(), UDim2.fromScale(1, 1), WHITE)
+	create("UIGradient", { Transparency = NumberSequence.new(0, 1), Parent = saturationLayer })
+	local brightnessLayer = box(square, UDim2.new(), UDim2.fromScale(1, 1), BLACK)
+	create("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(1, 0), Parent = brightnessLayer })
+	local squareCursor = box(square, UDim2.new(), UDim2.fromOffset(4, 4), WHITE, BLACK)
+	local squareHit = hitbox(square, UDim2.new(), UDim2.fromScale(1, 1))
+	local hueBar = box(inner, UDim2.fromOffset(164, 9), UDim2.fromOffset(14, 130), WHITE, BLACK)
+	create("UIGradient", { Color = RAINBOW, Rotation = 90, Parent = hueBar })
+	local hueCursor = box(hueBar, UDim2.new(), UDim2.new(1, 2, 0, 2), WHITE, BLACK)
+	local hueHit = hitbox(hueBar, UDim2.new(), UDim2.fromScale(1, 1))
+	local _, hexInner = well(inner, UDim2.fromOffset(7, 147), UDim2.new(1, -14, 0, 18), FIELD)
+	local hexBox = textObject("TextBox", hexInner, "", UDim2.fromOffset(5, 0), UDim2.new(1, -10, 1, 0))
+	hexBox.ClearTextOnFocus = false
+	local function refresh()
+		local color = Color3.fromHSV(hue, saturation, brightness)
+		square.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+		squareCursor.Position = UDim2.new(saturation, -2, 1 - brightness, -2)
+		hueCursor.Position = UDim2.new(0, -1, hue, -1)
+		hexBox.Text = "#" .. string.upper(color:ToHex())
+		onChange(color)
+	end
+	bindDrag(squareHit, function(position)
+		saturation = math.clamp((position.X - square.AbsolutePosition.X) / square.AbsoluteSize.X, 0, 1)
+		brightness = 1 - math.clamp((position.Y - square.AbsolutePosition.Y) / square.AbsoluteSize.Y, 0, 1)
+		refresh()
+	end)
+	bindDrag(hueHit, function(position)
+		hue = math.clamp((position.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
+		refresh()
+	end)
+	hexBox.FocusLost:Connect(function()
+		local valid, color = pcall(Color3.fromHex, hexBox.Text)
+		if valid then
+			hue, saturation, brightness = color:ToHSV()
+		end
+		refresh()
+	end)
+	refresh()
+	placePopup(frame, anchor, width, height)
+	activePopup = { Frame = frame, Anchor = anchor }
+end
+local function addRow(section, height)
+	local row = panel(section.Frame, UDim2.fromOffset(7, section.Height), UDim2.new(1, -14, 0, height))
+	section.Height = section.Height + height
+	section.Count = section.Count + 1
+	return row
+end
+local KeybindEntries = {}
+local RefreshHooks = {}
+local ConfigControls = {}
+local configPagePath = ""
+local configEnabled = true
+local function register(section, getValue, setValue, force)
+	if configEnabled or force then
+		ConfigControls[section.Path .. "#" .. section.Count] = { Get = getValue, Set = setValue }
+	end
+end
+local function buildBind(row, bind, onResize, isMenuKey)
+	local mode = bind[1]
+	local key = bind[2]
+	local capturing = false
+	local longPressed = false
+	local outer, inner = well(row, UDim2.fromScale(1, 0), UDim2.fromOffset(0, 13), SECTION)
+	outer.AnchorPoint = Vector2.new(1, 0)
+	local keyLabel = textObject("TextLabel", inner, "", UDim2.new(), UDim2.fromScale(1, 1), Enum.TextXAlignment.Center)
+	local hit = hitbox(outer, UDim2.new(), UDim2.fromScale(1, 1))
+	bindHover(hit, inner)
+	local function refresh()
+		local text = mode .. ": " .. (capturing and "..." or key)
+		local width = textWidth(text, TEXT_SIZE) + 6
+		keyLabel.Text = text
+		outer.Size = UDim2.fromOffset(width, 13)
+		onResize(width + 1)
+	end
+	local function finishCapture(name)
+		capturing = false
+		activeCapture = nil
+		if name == "Backspace" then
+			if not isMenuKey then
+				key = "None"
+			end
+		elseif name and name ~= "Escape" and not (isMenuKey and string.sub(name, 1, 5) == "Mouse") then
+			key = name
+			if isMenuKey then
+				menuKey = name
+			end
+		end
+		refresh()
+	end
+	local function startCapture()
+		closePopup()
+		capturing = true
+		activeCapture = { Anchor = outer, Finish = finishCapture }
+		refresh()
+	end
+	local function toggleModes()
+		if isPopupAnchor(outer) then
+			closePopup()
+			return
+		end
+		local widest = 0
+		for _, option in ipairs(BIND_MODES) do
+			widest = math.max(widest, textWidth(option, BIND_MENU_TEXT))
+		end
+		openList(outer, BIND_MODES, function(option)
+			return option == mode
+		end, function(option)
+			mode = option
+			refresh()
+			closePopup()
+		end, {
+			Width = widest + 12,
+			RowHeight = BIND_MENU_ROW,
+			TextSize = BIND_MENU_TEXT,
+			AlignRight = true,
+		})
+	end
+	hit.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			longPressed = false
+		end
+	end)
+	hit.Activated:Connect(function(input)
+		if longPressed then
+			longPressed = false
+		elseif capturing then
+			finishCapture(input.UserInputType == Enum.UserInputType.MouseButton1 and "MouseButton1" or nil)
+		else
+			startCapture()
+		end
+	end)
+	hit.MouseButton2Click:Connect(function()
+		if capturing then
+			finishCapture("MouseButton2")
+		elseif not isMenuKey then
+			toggleModes()
+		end
+	end)
+	if not isMenuKey then
+		hit.TouchLongPress:Connect(function(_, state)
+			if state == Enum.UserInputState.Begin and not capturing then
+				longPressed = true
+				toggleModes()
+			end
+		end)
+	end
+	refresh()
+	RefreshHooks[#RefreshHooks + 1] = refresh
+	local function setBind(newMode, newKey)
+		mode = newMode or mode
+		key = newKey or key
+		refresh()
+	end
+	return function()
+		return mode, key
+	end, setBind
+end
+local function buildSwatches(row, colors, onChange)
+	local count = #colors
+	local accessors = {}
+	for index, initial in ipairs(colors) do
+		local color = initial
+		local offset = (count - index) * SWATCH_PITCH + SWATCH_WIDTH
+		local outer, inner = well(row, UDim2.new(1, -offset, 0, 0), UDim2.fromOffset(SWATCH_WIDTH, 13), color)
+		local shine = box(inner, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 1, -2), WHITE)
+		shine.BackgroundTransparency = 0.92
+		create("UIGradient", { Color = ColorSequence.new(WHITE, BLACK), Rotation = 90, Parent = shine })
+		local hit = hitbox(row, UDim2.new(1, -offset, 0, 0), UDim2.fromOffset(SWATCH_WIDTH, 13))
+		bindHover(hit, inner)
+		accessors[index] = {
+			Get = function()
+				return color
+			end,
+			Set = function(value)
+				color = value
+				outer.BackgroundColor3 = value
+				inner.BackgroundColor3 = value
+				if onChange then
+					onChange(value)
+				end
+			end,
+		}
+		hit.Activated:Connect(function()
+			if isPopupAnchor(outer) then
+				closePopup()
+				return
+			end
+			openPicker(outer, color, function(value)
+				color = value
+				outer.BackgroundColor3 = value
+				inner.BackgroundColor3 = value
+				if onChange then
+					onChange(value)
+				end
+			end)
+		end)
+	end
+	return (count - 1) * SWATCH_PITCH + SWATCH_WIDTH + 1, accessors
+end
+local Builders = {}
+function Builders.Toggle(section, spec)
+	local row = addRow(section, ROW_TOGGLE)
+	local outer, inner = well(row, UDim2.new(), UDim2.fromOffset(13, 13), CONTROL)
+	shade(inner, SHADE_CONTROL)
+	local fill = accentFill(outer, UDim2.fromScale(1, 1))
+	local enabled = spec.Enabled
+	fill.Visible = enabled
+	local label = clippedText(row, spec.Text, UDim2.fromOffset(LABEL_OFFSET, 0), UDim2.new(1, -LABEL_OFFSET, 0, 14))
+	local hit = hitbox(row, UDim2.new(), UDim2.new(1, 0, 0, 13))
+	bindHover(hit, inner)
+	local function reserve(width)
+		label.Size = UDim2.new(1, -LABEL_OFFSET - width, 0, 14)
+		hit.Size = UDim2.new(1, -width, 0, 13)
+	end
+	local getBind, setBind, swatches, entry
+	if spec.Bind then
+		getBind, setBind = buildBind(row, spec.Bind, reserve, false)
+		entry = {
+			Text = spec.Text == "Enabled" and (configPagePath:match("([^/]+)/$") or spec.Text) or spec.Text,
+			Get = getBind,
+			Enabled = function()
+				return enabled
+			end,
+		}
+		KeybindEntries[#KeybindEntries + 1] = entry
+	elseif spec.Colors then
+		local width
+		width, swatches = buildSwatches(row, spec.Colors, spec.OnColor)
+		reserve(width)
+	end
+	local function setEnabled(value)
+		enabled = value and true or false
+		fill.Visible = enabled
+		if spec.OnChange then
+			spec.OnChange(enabled)
+		end
+	end
+	hit.Activated:Connect(function()
+		setEnabled(not enabled)
+	end)
+	if entry then
+		entry.SetEnabled = setEnabled
+	end
+	register(section, function()
+		local data = { Enabled = enabled }
+		if getBind then
+			data.Mode, data.Key = getBind()
+		end
+		if swatches then
+			data.Colors = {}
+			for index, swatch in ipairs(swatches) do
+				data.Colors[index] = swatch.Get():ToHex()
+			end
+		end
+		return data
+	end, function(data)
+		if type(data) ~= "table" then
+			return
+		end
+		if data.Enabled ~= nil then
+			setEnabled(data.Enabled)
+		end
+		if setBind and data.Mode and data.Key then
+			setBind(data.Mode, data.Key)
+		end
+		if swatches and type(data.Colors) == "table" then
+			for index, swatch in ipairs(swatches) do
+				if data.Colors[index] then
+					pcall(function()
+						swatch.Set(Color3.fromHex(data.Colors[index]))
+					end)
+				end
+			end
+		end
+	end, spec.ForceConfig)
+end
+function Builders.Slider(section, spec)
+	local row = addRow(section, ROW_SLIDER)
+	local minimum = spec.Min
+	local maximum = spec.Max
+	local maximumText = tostring(maximum)
+	textObject("TextLabel", row, spec.Text, UDim2.new(), UDim2.new(1, 0, 0, 13))
+	local valueLabel = textObject("TextLabel", row, "", UDim2.new(), UDim2.new(1, -2, 0, 13), Enum.TextXAlignment.Right)
+	local outer, inner = well(row, UDim2.fromOffset(0, 14), UDim2.new(1, 0, 0, 10), CONTROL)
+	shade(inner, SHADE_CONTROL)
+	local fill = accentFill(outer, UDim2.fromScale(0, 1))
+	local hit = hitbox(row, UDim2.fromOffset(0, 11), UDim2.new(1, 0, 0, 16))
+	local currentValue = spec.Value
+	local function setValue(value)
+		local current = math.clamp(roundTo(value, spec.Decimals), minimum, maximum)
+		currentValue = current
+		local alpha = (current - minimum) / (maximum - minimum)
+		fill.Size = UDim2.new(alpha, 2 - 2 * alpha, 1, 0)
+		fill.Visible = alpha > 0
+		valueLabel.Text = tostring(current) .. "/" .. maximumText
+		if spec.OnChange then
+			spec.OnChange(current)
+		end
+	end
+	bindDrag(hit, function(position)
+		local alpha = math.clamp((position.X - outer.AbsolutePosition.X) / outer.AbsoluteSize.X, 0, 1)
+		setValue(minimum + (maximum - minimum) * alpha)
+	end, function()
+		closePopup()
+		section.Column.ScrollingEnabled = false
+	end, function()
+		section.Column.ScrollingEnabled = true
+	end)
+	bindHover(hit, inner)
+	setValue(spec.Value)
+	register(section, function()
+		return currentValue
+	end, function(value)
+		if type(value) == "number" then
+			setValue(value)
+		end
+	end)
+end
+function Builders.Caption(section, spec)
+	local row = addRow(section, ROW_TOGGLE)
+	textObject("TextLabel", row, spec.Text, UDim2.new(), UDim2.new(1, 0, 0, 14))
+end
+function Builders.Dropdown(section, spec)
+	local row = addRow(section, ROW_FIELD)
+	local outer, inner = well(row, UDim2.fromOffset(0, -1), UDim2.new(1, 0, 0, 18), FIELD)
+	local valueLabel = textObject("TextLabel", inner, "", UDim2.fromOffset(5, 0), UDim2.new(1, -22, 1, 1))
+	valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	local icon = textObject("TextLabel", inner, "+", UDim2.fromOffset(0, -1), UDim2.new(1, -4, 1, 0), Enum.TextXAlignment.Right)
+	local hit = hitbox(row, UDim2.fromOffset(0, -1), UDim2.new(1, 0, 0, 18))
+	bindHover(hit, inner)
+	local chosen = {}
+	for _, option in ipairs(spec.Default) do
+		chosen[option] = true
+	end
+	local function refresh()
+		local names = {}
+		for _, option in ipairs(spec.Options) do
+			if chosen[option] then
+				names[#names + 1] = option
+			end
+		end
+		valueLabel.Text = #names > 0 and table.concat(names, ", ") or "None"
+	end
+	hit.Activated:Connect(function()
+		if isPopupAnchor(outer) then
+			closePopup()
+			return
+		end
+		openList(outer, spec.Options, function(option)
+			return chosen[option] == true
+		end, function(option)
+			if spec.Multi then
+				chosen[option] = not chosen[option] and true or nil
+				refresh()
+			else
+				chosen = { [option] = true }
+				refresh()
+				closePopup()
+				if spec.OnChange then
+					spec.OnChange(option)
+				end
+			end
+		end, {
+			Width = outer.AbsoluteSize.X / menuScale.Scale,
+			OnClose = function()
+				icon.Text = "+"
+			end,
+		})
+		icon.Text = "-"
+	end)
+	refresh()
+	spec.SetChosen = function(name)
+		chosen = name and { [name] = true } or {}
+		refresh()
+	end
+	register(section, function()
+		local names = {}
+		for _, option in ipairs(spec.Options) do
+			if chosen[option] then
+				names[#names + 1] = option
+			end
+		end
+		return names
+	end, function(data)
+		if type(data) ~= "table" then
+			return
+		end
+		local valid = {}
+		for _, option in ipairs(spec.Options) do
+			valid[option] = true
+		end
+		local picked = {}
+		for _, name in ipairs(data) do
+			if valid[name] then
+				picked[name] = true
+			end
+		end
+		chosen = picked
+		refresh()
+		if spec.OnChange and not spec.Multi then
+			for _, option in ipairs(spec.Options) do
+				if picked[option] then
+					spec.OnChange(option)
+					break
+				end
+			end
+		end
+	end)
+end
+function Builders.Button(section, spec)
+	local row = addRow(section, ROW_FIELD)
+	local _, inner = well(row, UDim2.fromOffset(0, -1), UDim2.new(1, 0, 0, 18), FIELD)
+	local hit = textObject(
+		"TextButton",
+		inner,
+		spec.Text,
+		UDim2.new(),
+		UDim2.fromScale(1, 1),
+		Enum.TextXAlignment.Center
+	)
+	hit.AutoButtonColor = false
+	bindHover(hit, inner)
+	hit.MouseButton1Down:Connect(function()
+		inner.BackgroundColor3 = MAIN
+	end)
+	hit.MouseButton1Up:Connect(function()
+		inner.BackgroundColor3 = FIELD
+	end)
+	hit.MouseLeave:Connect(function()
+		inner.BackgroundColor3 = FIELD
+	end)
+	if spec.Action then
+		hit.Activated:Connect(spec.Action)
+	end
+end
+function Builders.Color(section, spec)
+	local row = addRow(section, ROW_TOGGLE)
+	local label = clippedText(row, spec.Text, UDim2.new(), UDim2.new(1, 0, 0, 14))
+	local width, swatches = buildSwatches(row, { spec.Color }, spec.OnChange)
+	label.Size = UDim2.new(1, -width, 0, 14)
+	register(section, function()
+		return swatches[1].Get():ToHex()
+	end, function(value)
+		if type(value) == "string" then
+			pcall(function()
+				swatches[1].Set(Color3.fromHex(value))
+			end)
+		end
+	end)
+end
+function Builders.ListBox(section, spec)
+	local itemHeight = 16
+	local row = addRow(section, spec.Height + 5)
+	local _, inner = well(row, UDim2.new(), UDim2.new(1, 0, 0, spec.Height), FIELD)
+	local list = create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.fromOffset(0, 0),
+		ElasticBehavior = Enum.ElasticBehavior.Never,
+		Position = UDim2.fromOffset(1, 1),
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Size = UDim2.new(1, -2, 1, -2),
+		Parent = inner,
+	})
+	local selected = spec.Default
+	local buttons = {}
+	local function refresh()
+		for name, button in pairs(buttons) do
+			button.TextColor3 = name == selected and ACCENT or WHITE
+		end
+	end
+	local function setItems(items)
+		for _, button in pairs(buttons) do
+			button:Destroy()
+		end
+		buttons = {}
+		list.CanvasSize = UDim2.fromOffset(0, #items * itemHeight)
+		for index, name in ipairs(items) do
+			local button = textObject(
+				"TextButton",
+				list,
+				name,
+				UDim2.fromOffset(0, (index - 1) * itemHeight),
+				UDim2.new(1, 0, 0, itemHeight),
+				Enum.TextXAlignment.Center
+			)
+			button.AutoButtonColor = false
+			button.Activated:Connect(function()
+				selected = name
+				refresh()
+			end)
+			buttons[name] = button
+		end
+		refresh()
+	end
+	spec.SetItems = setItems
+	spec.GetSelected = function()
+		return selected
+	end
+	spec.SetSelected = function(name)
+		selected = name
+		refresh()
+	end
+	setItems(spec.Items)
+end
+function Builders.Field(section, spec)
+	local row = addRow(section, ROW_FIELD)
+	local _, inner = well(row, UDim2.fromOffset(0, -1), UDim2.new(1, 0, 0, 18), FIELD)
+	local input = textObject("TextBox", inner, "", UDim2.fromOffset(5, 0), UDim2.new(1, -10, 1, 0))
+	input.ClearTextOnFocus = false
+	input.ClipsDescendants = true
+	spec.Input = input
+	input.PlaceholderText = spec.Placeholder
+	input.PlaceholderColor3 = GREY
+end
+function Builders.MenuKey(section, spec)
+	local row = addRow(section, ROW_TOGGLE)
+	local label = clippedText(row, spec.Text, UDim2.new(), UDim2.new(1, 0, 0, 13))
+	local getBind, setBind = buildBind(row, { "Tap", spec.Key }, function(width)
+		label.Size = UDim2.new(1, -width, 0, 13)
+	end, true)
+	register(section, function()
+		local _, key = getBind()
+		return key
+	end, function(value)
+		if type(value) == "string" and value ~= "" then
+			setBind("Tap", value)
+			menuKey = value
+		end
+	end)
+end
+local function buildSection(column, spec)
+	local frame = box(column, UDim2.new(), UDim2.new(1, 1, 0, 0), SECTION, OUTLINE, true)
+	box(frame, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 1, -2), SECTION, BLACK, true)
+	box(frame, UDim2.fromOffset(2, 2), UDim2.new(1, -4, 0, 2), ACCENT)
+	textObject("TextLabel", frame, spec.Title, UDim2.fromOffset(5, 4), UDim2.new(1, -10, 0, 18))
+	local section = {
+		Column = column,
+		Frame = frame,
+		Height = SECTION_HEADER,
+		Path = configPagePath .. spec.Title,
+		Count = 0,
+	}
+	for _, row in ipairs(spec.Rows) do
+		Builders[row.Kind](section, row)
+	end
+	frame.Size = UDim2.new(1, 1, 0, section.Height + 1)
+	return section
+end
+local function buildColumn(host, position, sections)
+	local column = create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ElasticBehavior = Enum.ElasticBehavior.Never,
+		Position = position,
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Size = UDim2.new(0.5, -10, 1, -11),
+		Parent = host,
+	})
+	local offset = 0
+	for _, spec in ipairs(sections) do
+		local section = buildSection(column, spec)
+		section.Frame.Position = UDim2.fromOffset(0, offset)
+		offset = offset + section.Height + 1 + SECTION_GAP
+	end
+	column.CanvasSize = UDim2.fromOffset(0, math.max(offset - SECTION_GAP, 0))
+	column:GetPropertyChangedSignal("CanvasPosition"):Connect(closePopup)
+end
+local function buildTabs(host, pages, renderPage)
+	local count = #pages
+	local strip = panel(host, UDim2.fromOffset(6, 7), UDim2.new(1, -12, 0, 21))
+	strip.ZIndex = 2
+	local _, container = well(host, UDim2.fromOffset(6, 27), UDim2.new(1, -12, 1, -33), MAIN)
+	local tabs = {}
+	local function select(selected)
+		closePopup()
+		for index, tab in ipairs(tabs) do
+			local active = index == selected
+			tab.Face.BackgroundColor3 = active and MAIN or BACKGROUND
+			tab.Blocker.Visible = active
+			tab.Content.Visible = active
+		end
+	end
+	for index, page in ipairs(pages) do
+		local slot = panel(
+			strip,
+			UDim2.new((index - 1) / count, index - 1, 0, 0),
+			UDim2.new(1 / count, index == count and -3 or -5, 1, 0)
+		)
+		box(slot, UDim2.fromOffset(-1, -1), UDim2.new(1, 2, 1, 0), BLACK)
+		local face = box(slot, UDim2.new(), UDim2.fromScale(1, 1), BACKGROUND, OUTLINE, true)
+		local blocker = box(slot, UDim2.new(0, 1, 1, -1), UDim2.new(1, -2, 0, 1), MAIN)
+		local button = textObject(
+			"TextButton",
+			slot,
+			page.Name,
+			UDim2.fromOffset(0, -1),
+			UDim2.new(1, 0, 1, 1),
+			Enum.TextXAlignment.Center
+		)
+		button.AutoButtonColor = false
+		button.Activated:Connect(function()
+			select(index)
+		end)
+		local content = panel(container, UDim2.new(), UDim2.fromScale(1, 1))
+		tabs[index] = { Face = face, Blocker = blocker, Content = content }
+		renderPage(content, page)
+	end
+	select(1)
+end
+local function renderPage(host, page)
+	local previousPath, previousEnabled = configPagePath, configEnabled
+	configPagePath = configPagePath .. page.Name .. "/"
+	if page.NoConfig then
+		configEnabled = false
+	end
+	if page.Pages then
+		buildTabs(host, page.Pages, renderPage)
+	else
+		buildColumn(host, UDim2.fromOffset(6, 5), page.Left)
+		buildColumn(host, UDim2.new(0.5, 3, 0, 5), page.Right)
+	end
+	configPagePath, configEnabled = previousPath, previousEnabled
+end
+local SWAP_LABEL = false
+local mobileBox = create("Frame", {
+	BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+	BackgroundTransparency = 0.6,
+	BorderColor3 = BLACK,
+	BorderSizePixel = 1,
+	Position = UDim2.new(0.5, 0, 0, -30),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Size = UDim2.fromOffset(MOBILE_BOX_WIDTH, MOBILE_BOX_HEIGHT),
+	Visible = UserInputService.TouchEnabled,
+	ZIndex = 5,
+	Parent = screen,
+})
+create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = mobileBox })
+
+local mobileInner = create("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+	BackgroundTransparency = 0.6,
+	BorderColor3 = OUTLINE,
+	BorderMode = Enum.BorderMode.Inset,
+	BorderSizePixel = 1,
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 6,
+	Parent = mobileBox,
+})
+create("UICorner", { CornerRadius = UDim.new(0, 9), Parent = mobileInner })
+
+local mobileButton = textObject(
+	"TextButton",
+	mobileInner,
+	"Open",
+	UDim2.new(),
+	UDim2.fromScale(1, 1),
+	Enum.TextXAlignment.Center
+)
+mobileButton.AutoButtonColor = false
+mobileButton.TextSize = 14
+mobileButton.TextYAlignment = Enum.TextYAlignment.Center
+mobileButton.TextStrokeTransparency = 0.5
+local function setMenuVisible(visible)
+	closePopup()
+	window.Visible = visible
+	mobileButton.Text = (SWAP_LABEL and visible) and "Close" or "Open"
+end
+
+local mobileDragged = false
+mobileButton.Activated:Connect(function()
+	if mobileDragged then
+		mobileDragged = false
+		return
+	end
+	setMenuVisible(not window.Visible)
+end)
+
+local dragHandle = hitbox(chrome, UDim2.new(), UDim2.new(1, 0, 0, 19))
+dragHandle.Modal = true
+local dragStart
+local dragOrigin
+bindDrag(dragHandle, function(position)
+	local delta = position - dragOrigin
+	window.Position = UDim2.new(
+		dragStart.X.Scale,
+		dragStart.X.Offset + delta.X,
+		dragStart.Y.Scale,
+		dragStart.Y.Offset + delta.Y
+	)
+	keepWindowOnScreen()
+end, function(input)
+	closePopup()
+	dragStart = window.Position
+	dragOrigin = input.Position
+end)
+local function toggle(text, enabled, options)
+	local row = options or {}
+	row.Kind = "Toggle"
+	row.Text = text
+	row.Enabled = enabled
+	return row
+end
+local function slider(text, value, minimum, maximum, decimals, onChange)
+	return { Kind = "Slider", Text = text, Value = value, Min = minimum, Max = maximum, Decimals = decimals, OnChange = onChange }
+end
+local function caption(text)
+	return { Kind = "Caption", Text = text }
+end
+local function dropdown(options, default, multi, onChange)
+	return { Kind = "Dropdown", Options = options, Default = default, Multi = multi, OnChange = onChange }
+end
+local function button(text, action)
+	return { Kind = "Button", Text = text, Action = action }
+end
+local function field(placeholder)
+	return { Kind = "Field", Placeholder = placeholder }
+end
+local function menuKeyRow(text, key)
+	return { Kind = "MenuKey", Text = text, Key = key }
+end
+local HttpService = game:GetService("HttpService")
+local DISCORD_INVITE = userOptions.Discord or "discord.gg/kicia"
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local CoreGui = game:GetService("CoreGui")
+local localPlayer = Players.LocalPlayer
+local FOLDER = userOptions.Folder or "KiciahookV2"
+local SETTINGS_FILE = FOLDER .. "_settings.json"
+local AUTORUN_SOURCE = userOptions.AutoRunSource or ""
+local State = {
+	Debug = false,
+	KeybindMenu = false,
+	AutoReconnect = false,
+	AutoRun = false,
+	SilentLoad = false,
+	HideMobile = false,
+	DragMobile = false,
+	Disable3D = false,
+	AutoSaveConfig = false,
+	AutoLoadConfig = false,
+	AutoSaveName = "default.json",
+	AutoLoadName = "default.json",
+	KeybindColor = ACCENT:ToHex(),
+	Version = 3,
+}
+local settingsReset = false
+pcall(function()
+	if isfile and readfile and isfile(SETTINGS_FILE) then
+		local saved = HttpService:JSONDecode(readfile(SETTINGS_FILE))
+		if saved.Version ~= State.Version then
+			settingsReset = true
+		else
+			for key, value in pairs(saved) do
+				if State[key] ~= nil and type(value) == type(State[key]) then
+					State[key] = value
+				end
+			end
+		end
+	end
+end)
+local function saveState()
+	pcall(function()
+		if writefile then
+			writefile(SETTINGS_FILE, HttpService:JSONEncode(State))
+		end
+	end)
+end
+local function dbg(...)
+	if State.Debug then
+		print("[Kiciahook]", ...)
+	end
+end
+local function setState(key, value)
+	State[key] = value
+	saveState()
+	dbg(key, "=", value)
+end
+local function placeOnScreen(object, left, top, size)
+	local limit = screen.AbsoluteSize
+	if limit.X <= 0 or limit.Y <= 0 then
+		return
+	end
+	size = size or object.AbsoluteSize
+	left = math.clamp(left, 0, math.max(0, limit.X - size.X))
+	top = math.clamp(top, -topInset.Y, math.max(-topInset.Y, limit.Y - size.Y))
+	object.Position = UDim2.fromOffset(left + size.X * object.AnchorPoint.X, top + size.Y * object.AnchorPoint.Y)
+end
+local KEYBIND_ROW = 14
+local keybindColor = ACCENT
+pcall(function()
+	keybindColor = Color3.fromHex(State.KeybindColor)
+end)
+local keybindFrame, keybindInner = well(
+	screen,
+	UDim2.new(0, 10, 0.4, 0),
+	UDim2.fromOffset(110, 24),
+	Color3.fromRGB(15, 15, 15)
+)
+keybindFrame.Visible = State.KeybindMenu
+local keybindBar = box(keybindInner, UDim2.fromOffset(1, 1), UDim2.new(1, -2, 0, 2), keybindColor)
+textObject("TextLabel", keybindInner, "Keybinds", UDim2.fromOffset(5, 4), UDim2.new(1, -10, 0, 16))
+local keybindHandle = hitbox(keybindInner, UDim2.new(), UDim2.new(1, 0, 0, 20))
+local keybindStart
+local keybindOrigin
+bindDrag(keybindHandle, function(position)
+	local delta = position - keybindOrigin
+	placeOnScreen(keybindFrame, keybindStart.X + delta.X, keybindStart.Y + delta.Y)
+end, function(input)
+	keybindStart = keybindFrame.AbsolutePosition
+	keybindOrigin = input.Position
+end)
+local keybindLabels = {}
+local keybindSignature = ""
+local function refreshKeybinds()
+	local names, keys = {}, {}
+	for _, entry in ipairs(KeybindEntries) do
+		local mode, key = entry.Get()
+		if entry.Enabled() and (mode == "Always" or key ~= "None") then
+			names[#names + 1] = entry.Text
+			keys[#keys + 1] = mode == "Always" and "[Always]" or ("[" .. key .. "]")
+		end
+	end
+	local signature = table.concat(names, "|") .. "#" .. table.concat(keys, "|")
+	if signature == keybindSignature then
+		return
+	end
+	keybindSignature = signature
+	for _, label in ipairs(keybindLabels) do
+		label:Destroy()
+	end
+	table.clear(keybindLabels)
+	local widest = textWidth("Keybinds", TEXT_SIZE)
+	for index = 1, #names do
+		local y = 20 + (index - 1) * KEYBIND_ROW
+		keybindLabels[#keybindLabels + 1] = textObject(
+			"TextLabel",
+			keybindInner,
+			names[index],
+			UDim2.fromOffset(5, y),
+			UDim2.new(1, -10, 0, KEYBIND_ROW)
+		)
+		keybindLabels[#keybindLabels + 1] = textObject(
+			"TextLabel",
+			keybindInner,
+			keys[index],
+			UDim2.fromOffset(5, y),
+			UDim2.new(1, -10, 0, KEYBIND_ROW),
+			Enum.TextXAlignment.Right
+		)
+		widest = math.max(widest, textWidth(names[index], TEXT_SIZE) + 14 + textWidth(keys[index], TEXT_SIZE))
+	end
+	local width = math.max(110, widest + 12)
+	local height = 24 + #names * KEYBIND_ROW
+	keybindFrame.Size = UDim2.fromOffset(width, height)
+	local position = keybindFrame.AbsolutePosition
+	placeOnScreen(keybindFrame, position.X, position.Y, Vector2.new(width, height))
+end
+screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	local position = keybindFrame.AbsolutePosition
+	placeOnScreen(keybindFrame, position.X, position.Y)
+end)
+local function copyInvite()
+	pcall(function()
+		setclipboard(DISCORD_INVITE)
+	end)
+end
+local function joinDiscord()
+	local req = request or http_request or (syn and syn.request)
+	local ok = false
+	if req then
+		ok = pcall(function()
+			req({
+				Url = "http://127.0.0.1:6463/rpc?v=1",
+				Method = "POST",
+				Headers = {
+					["Content-Type"] = "application/json",
+					["Origin"] = "https://discord.com",
+				},
+				Body = HttpService:JSONEncode({
+					cmd = "INVITE_BROWSER",
+					args = { code = string.match(DISCORD_INVITE, "[^/]+$") or "kicia" },
+					nonce = HttpService:GenerateGUID(false),
+				}),
+			})
+		end)
+	end
+	if not ok then
+		copyInvite()
+	end
+end
+local function colorRow(text, color, onChange)
+	return { Kind = "Color", Text = text, Color = color, OnChange = onChange }
+end
+local function listBox(items, default, height)
+	return { Kind = "ListBox", Items = items, Default = default, Height = height }
+end
+local function applyAccent(newColor)
+	local old, oldDark = ACCENT, ACCENT_DARK
+	if newColor == old then
+		return
+	end
+	local newDark = Color3.new(newColor.R * 0.45, newColor.G * 0.45, newColor.B * 0.45)
+	ACCENT, ACCENT_DARK = newColor, newDark
+	for _, object in ipairs(screen:GetDescendants()) do
+		if object:IsA("GuiObject") then
+			if object.BackgroundColor3 == old then
+				object.BackgroundColor3 = newColor
+			elseif object.BackgroundColor3 == oldDark then
+				object.BackgroundColor3 = newDark
+			end
+			if object.BorderColor3 == old then
+				object.BorderColor3 = newColor
+			elseif object.BorderColor3 == oldDark then
+				object.BorderColor3 = newDark
+			end
+			if
+				(object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox"))
+				and object.TextColor3 == old
+			then
+				object.TextColor3 = newColor
+			end
+		end
+	end
+end
+local function applyTextSize(size)
+	local old = TEXT_SIZE
+	if size == old then
+		return
+	end
+	TEXT_SIZE = size
+	for _, object in ipairs(screen:GetDescendants()) do
+		if
+			(object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox"))
+			and object.TextSize == old
+		then
+			object.TextSize = size
+		end
+	end
+	for _, hook in ipairs(RefreshHooks) do
+		hook()
+	end
+	keybindSignature = ""
+end
+local FONT_OPTIONS = {
+	"Ubuntu", "SourceSans", "Gotham", "Code", "Arial", "RobotoMono", "Roboto", "Jura", "Michroma", "Nunito",
+}
+local function applyFont(name)
+	local ok, font = pcall(function()
+		return Enum.Font[name]
+	end)
+	if not ok or not font then
+		return
+	end
+	FONT = font
+	for _, object in ipairs(screen:GetDescendants()) do
+		if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+			object.Font = font
+		end
+	end
+	for _, hook in ipairs(RefreshHooks) do
+		hook()
+	end
+	keybindSignature = ""
+end
+local function copyText(text)
+	local copy = setclipboard or toclipboard
+	if copy then
+		pcall(copy, text)
+		dbg("Copied:", text)
+	else
+		dbg("Executor has no clipboard function")
+	end
+end
+local reconnecting = false
+local function reconnect()
+	if reconnecting then
+		return
+	end
+	reconnecting = true
+	dbg("Reconnecting to", game.JobId)
+	task.spawn(function()
+		local ok = pcall(function()
+			if #Players:GetPlayers() <= 1 then
+				TeleportService:Teleport(game.PlaceId, localPlayer)
+			else
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, localPlayer)
+			end
+		end)
+		if not ok then
+			dbg("Reconnect failed")
+		end
+		task.wait(5)
+		reconnecting = false
+	end)
+end
+local function copyJobId()
+	copyText(game.JobId)
+end
+local function copyPlaceId()
+	copyText(tostring(game.PlaceId))
+end
+local function copyServerInvite()
+	copyText(("roblox://experiences/start?placeId=%d&gameInstanceId=%s"):format(game.PlaceId, game.JobId))
+end
+local function copyJoinScript()
+	copyText(
+		("game:GetService('TeleportService'):TeleportToPlaceInstance(%d, '%s', game.Players.LocalPlayer)"):format(
+			game.PlaceId,
+			game.JobId
+		)
+	)
+end
+local function serverHop()
+	local req = request or http_request or (syn and syn.request)
+	if not req then
+		dbg("Executor has no request function")
+		return
+	end
+	task.spawn(function()
+		local ok, result = pcall(function()
+			local response = req({
+				Url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(
+					game.PlaceId
+				),
+			})
+			return HttpService:JSONDecode(response.Body)
+		end)
+		if not ok or type(result) ~= "table" or not result.data then
+			dbg("Server list request failed")
+			return
+		end
+		local candidates = {}
+		for _, server in ipairs(result.data) do
+			if server.id ~= game.JobId and server.playing < server.maxPlayers then
+				candidates[#candidates + 1] = server.id
+			end
+		end
+		if #candidates == 0 then
+			dbg("No other servers found")
+			return
+		end
+		dbg("Hopping servers")
+		pcall(function()
+			TeleportService:TeleportToPlaceInstance(game.PlaceId, candidates[math.random(#candidates)], localPlayer)
+		end)
+	end)
+end
+local promptConnection
+local function setAutoReconnect(value)
+	if promptConnection then
+		promptConnection:Disconnect()
+		promptConnection = nil
+	end
+	if not value then
+		return
+	end
+	task.spawn(function()
+		local ok, overlay = pcall(function()
+			return CoreGui:WaitForChild("RobloxPromptGui", 10):WaitForChild("promptOverlay", 10)
+		end)
+		if not ok or not overlay or not State.AutoReconnect or promptConnection then
+			return
+		end
+		promptConnection = overlay.ChildAdded:Connect(function(child)
+			if child.Name == "ErrorPrompt" then
+				task.wait(2)
+				reconnect()
+			end
+		end)
+	end)
+end
+local function set3DDisabled(value)
+	pcall(function()
+		RunService:Set3dRenderingEnabled(not value)
+	end)
+end
+local function setHideMobile(hidden)
+	mobileBox.BackgroundTransparency = hidden and 1 or 0.6
+	mobileBox.BorderSizePixel = hidden and 0 or 1
+	mobileInner.BackgroundTransparency = hidden and 1 or 0.6
+	mobileInner.BorderSizePixel = hidden and 0 or 1
+	mobileButton.TextTransparency = hidden and 1 or 0
+	mobileButton.TextStrokeTransparency = hidden and 1 or 0.5
+end
+local mobileDragOrigin
+local mobileDragStart
+local mobileMoved = false
+bindDrag(mobileButton, function(position)
+	if not State.DragMobile or not mobileDragOrigin then
+		return
+	end
+	local delta = position - mobileDragOrigin
+	if not mobileDragged and delta.Magnitude < TAP_SLOP then
+		return
+	end
+	mobileDragged = true
+	mobileMoved = true
+	local limit = screen.AbsoluteSize
+	local size = mobileBox.AbsoluteSize
+	local left = math.clamp(mobileDragStart.X + delta.X, 0, math.max(0, limit.X - size.X))
+	local top = math.clamp(mobileDragStart.Y + delta.Y, -topInset.Y, math.max(-topInset.Y, limit.Y - size.Y))
+	mobileBox.Position = UDim2.fromOffset(left + size.X / 2, top)
+end, function(input)
+	mobileDragOrigin = input.Position
+	mobileDragStart = mobileBox.AbsolutePosition
+	mobileDragged = false
+end)
+screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	if not mobileMoved then
+		return
+	end
+	local limit = screen.AbsoluteSize
+	local size = mobileBox.AbsoluteSize
+	local position = mobileBox.AbsolutePosition
+	local left = math.clamp(position.X, 0, math.max(0, limit.X - size.X))
+	local top = math.clamp(position.Y, -topInset.Y, math.max(-topInset.Y, limit.Y - size.Y))
+	mobileBox.Position = UDim2.fromOffset(left + size.X / 2, top)
+end)
+local function queueAutoRun()
+	local queue = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+	if queue and AUTORUN_SOURCE ~= "" then
+		pcall(queue, AUTORUN_SOURCE)
+		dbg("Queued script for next teleport")
+	else
+		dbg("Auto Run: no queue_on_teleport or AUTORUN_SOURCE is empty")
+	end
+end
+table.insert(
+	connections,
+	localPlayer.OnTeleport:Connect(function(teleportState)
+		if teleportState == Enum.TeleportState.Started and State.AutoRun then
+			queueAutoRun()
+		end
+	end)
+)
+local function cleanup()
+	if promptConnection then
+		promptConnection:Disconnect()
+		promptConnection = nil
+	end
+	set3DDisabled(false)
+end
+local CONFIG_DIR = FOLDER .. "/configs"
+local configNames = {}
+local lastAutoSaved
+local configNameField = field("Config Name")
+local configListSpec = listBox(configNames, nil, 90)
+local autoSaveDrop = dropdown(configNames, { State.AutoSaveName }, false, function(name)
+	setState("AutoSaveName", name)
+end)
+local autoLoadDrop = dropdown(configNames, { State.AutoLoadName }, false, function(name)
+	setState("AutoLoadName", name)
+end)
+local function notify(text)
+	dbg(text)
+end
+local function ensureFolders()
+	pcall(function()
+		if makefolder then
+			if not isfolder(FOLDER) then
+				makefolder(FOLDER)
+			end
+			if not isfolder(CONFIG_DIR) then
+				makefolder(CONFIG_DIR)
+			end
+		end
+	end)
+end
+local function scanConfigNames()
+	local names = {}
+	local ok, files = pcall(function()
+		return listfiles(CONFIG_DIR)
+	end)
+	if ok and type(files) == "table" then
+		for _, path in ipairs(files) do
+			local name = tostring(path):match("([^/\\]+)$")
+			if name and string.lower(string.sub(name, -5)) == ".json" then
+				names[#names + 1] = name
+			end
+		end
+	end
+	table.sort(names)
+	table.clear(configNames)
+	for _, name in ipairs(names) do
+		configNames[#configNames + 1] = name
+	end
+end
+local function normalizeName(text)
+	text = tostring(text or "")
+	text = string.gsub(text, "[^%w _%-%.]", "")
+	text = string.gsub(text, "^%s+", "")
+	text = string.gsub(text, "%s+$", "")
+	if text == "" then
+		return nil
+	end
+	if string.lower(string.sub(text, -5)) ~= ".json" then
+		text = text .. ".json"
+	end
+	return text
+end
+local function collectConfig()
+	local data = {}
+	for id, control in pairs(ConfigControls) do
+		data[id] = control.Get()
+	end
+	return HttpService:JSONEncode(data)
+end
+local function applyConfig(text)
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(text)
+	end)
+	if not ok or type(data) ~= "table" then
+		return false
+	end
+	for id, value in pairs(data) do
+		local control = ConfigControls[id]
+		if control then
+			pcall(control.Set, value)
+		end
+	end
+	return true
+end
+local function writeConfig(name, text)
+	ensureFolders()
+	return (pcall(function()
+		writefile(CONFIG_DIR .. "/" .. name, text)
+	end))
+end
+local function readConfig(name)
+	local ok, text = pcall(function()
+		return readfile(CONFIG_DIR .. "/" .. name)
+	end)
+	return ok and text or nil
+end
+local function syncConfigUI()
+	scanConfigNames()
+	configListSpec.SetItems(configNames)
+	local selected = configListSpec.GetSelected() or State.AutoLoadName
+	if not table.find(configNames, selected) then
+		selected = configNames[1]
+	end
+	configListSpec.SetSelected(selected)
+	autoSaveDrop.SetChosen(State.AutoSaveName)
+	autoLoadDrop.SetChosen(State.AutoLoadName)
+end
+local function createConfig()
+	local name = normalizeName(configNameField.Input.Text)
+	if not name then
+		notify("Type a config name first")
+		return
+	end
+	if writeConfig(name, collectConfig()) then
+		configNameField.Input.Text = ""
+		syncConfigUI()
+		configListSpec.SetSelected(name)
+		notify("Created " .. name)
+	else
+		notify("Could not write file (executor has no file access?)")
+	end
+end
+local function saveConfig()
+	local name = configListSpec.GetSelected()
+	if not name then
+		notify("Select a config first")
+		return
+	end
+	notify(writeConfig(name, collectConfig()) and ("Saved " .. name) or "Could not save config")
+end
+local function loadConfig()
+	local name = configListSpec.GetSelected()
+	if not name then
+		notify("Select a config first")
+		return
+	end
+	local text = readConfig(name)
+	notify((text and applyConfig(text)) and ("Loaded " .. name) or ("Could not load " .. name))
+end
+local function deleteConfig()
+	local name = configListSpec.GetSelected()
+	if not name then
+		notify("Select a config first")
+		return
+	end
+	local ok = pcall(function()
+		delfile(CONFIG_DIR .. "/" .. name)
+	end)
+	configListSpec.SetSelected(nil)
+	syncConfigUI()
+	notify(ok and ("Deleted " .. name) or "Could not delete config")
+end
+local function validPosition(data)
+	return type(data) == "table" and type(data.X) == "number" and type(data.Y) == "number"
+end
+ConfigControls["Positions/Window"] = {
+	Get = function()
+		return { X = window.Position.X.Offset, Y = window.Position.Y.Offset }
+	end,
+	Set = function(data)
+		if validPosition(data) then
+			window.Position = UDim2.new(0.5, data.X, 0.5, data.Y)
+			keepWindowOnScreen()
+		end
+	end,
+}
+ConfigControls["Positions/Keybinds"] = {
+	Get = function()
+		local position = keybindFrame.AbsolutePosition
+		return { X = position.X, Y = position.Y }
+	end,
+	Set = function(data)
+		if validPosition(data) then
+			placeOnScreen(keybindFrame, data.X, data.Y)
+		end
+	end,
+}
+ConfigControls["Positions/Mobile"] = {
+	Get = function()
+		local position = mobileBox.AbsolutePosition
+		return { X = position.X, Y = position.Y }
+	end,
+	Set = function(data)
+		if validPosition(data) then
+			mobileMoved = true
+			placeOnScreen(mobileBox, data.X, data.Y)
+		end
+	end,
+}
+ensureFolders()
+scanConfigNames()
+local Menu = {}
+for _, page in ipairs(userOptions.Pages or {}) do
+	Menu[#Menu + 1] = page
+end
+Menu[#Menu + 1] = {
+		Name = "Settings",
+		Left = {
+			{
+				Title = "Discord",
+				Rows = {
+					button("Join Discord", joinDiscord),
+					button("Copy Discord Invite", copyInvite),
+				},
+			},
+			{
+				Title = "Menu",
+				Rows = {
+					menuKeyRow("Keybind", "RightShift"),
+					colorRow("Accent", ACCENT, applyAccent),
+					caption("Font"),
+					dropdown(FONT_OPTIONS, { "Ubuntu" }, false, applyFont),
+					slider("Text Size", 14, 8, 26, 0, applyTextSize),
+					button("Unload", function()
+						screen:Destroy()
+					end),
+					toggle("Debug Mode", State.Debug, {
+						OnChange = function(value)
+							setState("Debug", value)
+						end,
+					}),
+					toggle("Keybind Menu", State.KeybindMenu, {
+						Colors = { keybindColor },
+	ForceConfig = true,
+						OnColor = function(value)
+							keybindBar.BackgroundColor3 = value
+							setState("KeybindColor", value:ToHex())
+						end,
+						OnChange = function(value)
+							setState("KeybindMenu", value)
+							keybindFrame.Visible = value
+							keybindSignature = ""
+							if value then
+								refreshKeybinds()
+							end
+						end,
+					}),
+					toggle("Auto Reconnect", State.AutoReconnect, {
+						OnChange = function(value)
+							setState("AutoReconnect", value)
+							setAutoReconnect(value)
+						end,
+					}),
+					toggle("Auto Run Script", State.AutoRun, {
+						OnChange = function(value)
+							setState("AutoRun", value)
+						end,
+					}),
+					toggle("Silent Load", State.SilentLoad, {
+						OnChange = function(value)
+							setState("SilentLoad", value)
+						end,
+					}),
+					toggle("Hide Mobile Button", State.HideMobile, {
+						OnChange = function(value)
+							setState("HideMobile", value)
+							setHideMobile(value)
+						end,
+					}),
+					toggle("Drag Mobile Button", State.DragMobile, {
+						OnChange = function(value)
+							setState("DragMobile", value)
+						end,
+					}),
+					toggle("Disable 3D Rendering", State.Disable3D, {
+						OnChange = function(value)
+							setState("Disable3D", value)
+							set3DDisabled(value)
+						end,
+					}),
+				},
+			},
+			{
+				Title = "Server",
+				Rows = {
+					button("Reconnect", reconnect),
+					button("Copy JobId", copyJobId),
+					button("Copy Server Invite", copyServerInvite),
+					button("Copy PlaceId", copyPlaceId),
+					button("Copy Join Script", copyJoinScript),
+					button("Server Hop", serverHop),
+				},
+			},
+		},
+		Right = {
+			{
+				Title = "Configuration",
+				Rows = {
+					configNameField,
+					button("Create", createConfig),
+					configListSpec,
+					button("Load", loadConfig),
+					button("Save", saveConfig),
+					button("Delete", deleteConfig),
+					toggle("Auto Save To Config", State.AutoSaveConfig, {
+						OnChange = function(value)
+							setState("AutoSaveConfig", value)
+						end,
+					}),
+					autoSaveDrop,
+					toggle("Auto Load Config", State.AutoLoadConfig, {
+						OnChange = function(value)
+							setState("AutoLoadConfig", value)
+						end,
+					}),
+					autoLoadDrop,
+				},
+			},
+		},
+	}
+buildTabs(body, Menu, renderPage)
+setHideMobile(State.HideMobile)
+setAutoReconnect(State.AutoReconnect)
+if State.Disable3D then
+	set3DDisabled(true)
+end
+if State.KeybindMenu then
+	refreshKeybinds()
+end
+task.spawn(function()
+	while screen.Parent do
+		if State.KeybindMenu then
+			refreshKeybinds()
+		end
+		task.wait(0.25)
+	end
+end)
+if #configNames == 0 then
+	writeConfig("default.json", collectConfig())
+end
+syncConfigUI()
+if settingsReset then
+	saveState()
+	writeConfig(State.AutoSaveName, collectConfig())
+elseif State.AutoLoadConfig and State.AutoLoadName then
+	local savedText = readConfig(State.AutoLoadName)
+	if savedText then
+		applyConfig(savedText)
+	end
+end
+lastAutoSaved = collectConfig()
+task.spawn(function()
+	while screen.Parent do
+		task.wait(3)
+		if State.AutoSaveConfig and State.AutoSaveName then
+			local text = collectConfig()
+			if text ~= lastAutoSaved then
+				lastAutoSaved = text
+				writeConfig(State.AutoSaveName, text)
+			end
+		end
+	end
+end)
+if State.SilentLoad then
+	setMenuVisible(false)
+end
+table.insert(
+	connections,
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if activeCapture then
+			local capture = activeCapture
+			if not (isPointerPress(input) and isInside(capture.Anchor, input.Position)) then
+				if isPress(input) then
+					capture.Finish(nil)
+				else
+					local name = inputName(input)
+					if name then
+						capture.Finish(name)
+					end
+				end
+			end
+			return
+		end
+		if
+			activePopup
+			and isPointerPress(input)
+			and not isInside(activePopup.Frame, input.Position)
+			and not isInside(activePopup.Anchor, input.Position)
+		then
+			closePopup()
+		end
+		if UserInputService:GetFocusedTextBox() == nil then
+			local pressed = inputName(input)
+			if pressed then
+				for _, entry in ipairs(KeybindEntries) do
+					local mode, key = entry.Get()
+					if key == pressed and entry.SetEnabled then
+						if mode == "Toggle" then
+							entry.SetEnabled(not entry.Enabled())
+						elseif mode == "Hold" then
+							entry.Held = true
+							entry.SetEnabled(true)
+						end
+					end
+				end
+			end
+		end
+		if not processed and inputName(input) == menuKey then
+			setMenuVisible(not window.Visible)
+		end
+	end)
+)
+table.insert(
+	connections,
+	UserInputService.InputEnded:Connect(function(input)
+		local released = inputName(input)
+		if not released then
+			return
+		end
+		for _, entry in ipairs(KeybindEntries) do
+			local _, key = entry.Get()
+			if entry.Held and key == released and entry.SetEnabled then
+				entry.Held = false
+				entry.SetEnabled(false)
+			end
+		end
+	end)
+)
+screen.Destroying:Connect(function()
+	cleanup()
+	for _, connection in ipairs(connections) do
+		connection:Disconnect()
+	end
+end)
+
+return {
+	Screen = screen,
+	SetVisible = setMenuVisible,
+	Destroy = function()
+		screen:Destroy()
+	end,
+}
+end
+return Library
