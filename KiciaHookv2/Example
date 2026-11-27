@@ -1,0 +1,107 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/gethttps/Librarys/refs/heads/main/KiciaHookv2/Source"))()
+local Lighting = game:GetService("Lighting")
+
+local Window = Library.Create({
+	Title = "My Script | Example",
+	Folder = "MyScript",
+	Discord = "discord.gg/kicia",
+	Pages = {
+		{
+			Name = "Main",
+			Left = {
+				{
+					Title = "Toggles",
+					Rows = {
+						Library.Toggle("Simple Toggle", false, {
+							OnChange = function(value)
+								print("Simple Toggle:", value)
+							end,
+						}),
+						Library.Toggle("Toggle With Keybind", false, {
+							Bind = { "Toggle", "F" },
+							OnChange = function(value)
+								print("Keybind Toggle:", value)
+							end,
+						}),
+						Library.Toggle("Toggle With Color", false, {
+							Colors = { Color3.fromRGB(0, 216, 255) },
+							OnColor = function(color)
+								print("Color:", color)
+							end,
+							OnChange = function(value)
+								print("Color Toggle:", value)
+							end,
+						}),
+					},
+				},
+				{
+					Title = "Buttons",
+					Rows = {
+						Library.Button("Print Hello", function()
+							print("Hello")
+						end),
+						Library.Field("Type something here"),
+					},
+				},
+			},
+			Right = {
+				{
+					Title = "Sliders",
+					Rows = {
+						Library.Slider("Clock Time", 14, 0, 24, 1, function(value)
+							Lighting.ClockTime = value
+						end),
+						Library.Slider("Brightness", 2, 0, 10, 1, function(value)
+							Lighting.Brightness = value
+						end),
+					},
+				},
+				{
+					Title = "Dropdowns",
+					Rows = {
+						Library.Caption("Single select"),
+						Library.Dropdown({ "Day", "Sunset", "Night" }, { "Day" }, false, function(name)
+							print("Picked:", name)
+						end),
+						Library.Caption("Multi select"),
+						Library.Dropdown({ "One", "Two", "Three" }, { "One" }, true),
+					},
+				},
+			},
+		},
+		{
+			Name = "More",
+			Pages = {
+				{
+					Name = "First",
+					Left = {
+						{
+							Title = "Nested Tab",
+							Rows = {
+								Library.Caption("Tabs can hold more tabs."),
+								Library.Toggle("Another Toggle", false),
+							},
+						},
+					},
+					Right = {},
+				},
+				{
+					Name = "Second",
+					Left = {
+						{
+							Title = "Colors",
+							Rows = {
+								Library.Color("Pick a color", Color3.fromRGB(255, 255, 255), function(color)
+									print("Picked color:", color)
+								end),
+							},
+						},
+					},
+					Right = {},
+				},
+			},
+		},
+	},
+})
+
+Window.SetVisible(true)
